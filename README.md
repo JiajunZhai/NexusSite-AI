@@ -59,29 +59,90 @@ graph TD
 ## ⚡ 快速开始
 
 ### 前置条件
-- Docker & Docker Compose
-- OpenAI API Key（推荐使用 GPT-4o）
+- **Docker Desktop**（含 Docker Compose）
+- **OpenRouter API Key**（必需，用于 4 专家调用）
+- （可选）**OpenCode Zen API Key**（如果你想用 `opencode/...` 模型）
 
-### 安装与启动
-1. **克隆仓库：**
+### 本项目启动后有哪些服务？
+- **Orchestrator API（后端）**：`http://localhost:8000`
+- **Web 控制台（UI）**：`http://localhost:3002`
+- **Workspace 预览（Next.js 沙盒）**：`http://localhost:3001`
+
+### 安装与启动（推荐流程）
+1. **进入项目根目录**（本仓库目录）。
+
+2. **配置后端密钥**（必做）
+
+   打开 `orchestrator/.env`，至少填写：
+
+   - `OPENROUTER_API_KEY=...`
+   - `OPENROUTER_MODEL=qwen/qwen3.6-plus-preview:free`（默认已设置）
+
+   可选（启用 Zen）：
+
+   - `OPENCODE_ZEN_API_KEY=...`
+
+3. **启动全部服务**
+
    ```bash
-   git clone https://github.com/yourname/NexusSite-AI.git
-   cd NexusSite-AI
+   docker compose up -d --build
    ```
 
-2. **配置环境变量：**
-   ```bash
-   cp .env.example .env
-   # Add your OPENAI_API_KEY to .env
-   ```
+4. **打开控制台并开始一次生成**
 
-3. **启动工作室：**
-   ```bash
-   docker-compose up
-   ```
+   - 打开 **Web 控制台**：`http://localhost:3002`
+   - 在输入框描述你要的网站/页面，然后发送
+   - 你可以点击输入框左侧 **⚙️** 打开“专家模型配置”
 
-4. **开始构建：**
-   打开 `http://localhost:8000`，与 AI 团队对话并开始生成网站。
+### 如何选择模型（OpenRouter / OpenCode Zen）
+本项目使用 **角色级别的 `model_map`**（PM/Designer/Coder/QA 各自独立）。
+
+- **OpenRouter**：在“专家模型配置”里先选 *OpenRouter / 提供商*，再选该提供商下的模型（例如 `qwen/...`、`openai/...`、`anthropic/...`）。
+- **OpenCode Zen**：选择 *OpenCode Zen / opencode-zen*，再选 `opencode/...` 模型。
+  - Zen 模型调用参考官方文档：[OpenCode Zen](https://opencode.ai/docs/zen/)
+  - 若未配置 `OPENCODE_ZEN_API_KEY`，选择 `opencode/...` 会报缺少 key（属预期行为）。
+
+### 预览与导出
+- **预览**：打开 `http://localhost:3001`（或在 Web 控制台右上角点“预览”按钮）
+- **导出源码**：在 Web 控制台点“导出”，会下载后端打包的 `workspace/` 源码（不包含 `node_modules` / `.next` 等构建产物）
+
+---
+
+## 🧰 常用 API（用于调试/集成）
+- **健康检查**：`GET /health`
+- **运行一次工作流**：`POST /api/run`
+- **日志流（SSE）**：`GET /api/logs/sse`
+- **模型目录**：`GET /api/models`
+- **文件列表**：`GET /api/files`
+- **读取文件内容**：`GET /api/files/content?path=app/...`
+- **导出 workspace**：`GET /api/export`
+
+---
+
+## 🧯 常见问题（FAQ）
+### 1) `http://localhost:3001` 预览 500（Internal Server Error）
+通常是 **workspace 的 Next.js 编译失败**（比如引用了不存在的 `@/components/...`）。解决方式：
+
+```bash
+docker compose logs -f workspace
+```
+
+看到 `Module not found` 后，修复对应文件（通常在 `workspace/app/*`），然后重启：
+
+```bash
+docker compose restart workspace
+```
+
+### 2) 修改文件后 HMR 不生效 / 更新很慢
+Windows + Docker 的文件监听可能需要 polling。我们已在 `docker-compose.yml` 为 `workspace` 开启：
+`CHOKIDAR_USEPOLLING / WATCHPACK_POLLING`。
+
+### 3) 选择 Zen 模型报错
+请确认 `orchestrator/.env` 已填写 `OPENCODE_ZEN_API_KEY`，并重启 orchestrator：
+
+```bash
+docker compose restart orchestrator
+```
 
 ---
 

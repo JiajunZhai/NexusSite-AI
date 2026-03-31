@@ -1,11 +1,13 @@
-# NexusSite-AI Project Rules
+# NexusSite-AI 核心开发准则
 
-- **Tech Stack:** Python 3.10 (FastAPI), LangGraph, Next.js 14 (App Router), Docker, Tailwind CSS.
-- **Architecture:** Orchestrator (Backend) and Workspace (Next.js Sandbox) must be strictly isolated via Docker.
-- **Agent Design:** Use class-based agents in `agents/`. Each agent must have a clearly defined `SystemPrompt`.
-- **State Management:** Use `AgentState` TypedDict for LangGraph. Never pass the entire codebase in prompts; use file-based operations.
-- **Style:** All generated React components must use Tailwind CSS and follow Shadcn UI patterns.
-- **Error Handling:** Implement robust logging for Docker exec commands. If a build fails, capture stderr for the QA Agent.
+- **技术栈限制:** Python 3.10 (FastAPI + LangGraph), Node 20-slim (Next.js 14 App Router), Tailwind 3, Framer Motion.
+- **容器化原则:** Orchestrator (控制层) 与 Workspace (执行层) 严格隔离。
+- **文件操作安全:** 严禁在容器内假设存在 Python 或高级 Shell。所有 `write_file` 操作必须通过 Node.js 原生脚本在 Workspace 容器内执行，以规避 Dash/Bash 兼容性问题。
+- **LangGraph 逻辑:** 
+    - 状态机必须包含 `retry_count` 且上限为 3。
+    - 路由判断仅依赖最后一次 `test_report`。
+- **UI 风格:** 仿 Linear/Vercel 风格。使用 `framer-motion` 处理高度折叠和 Spring 动效。
+- **日志规范:** 后端输出必须为结构化 JSON（含 `node_name`, `status`, `content`），以便前端卡片化展示。
 ```
 
 ---

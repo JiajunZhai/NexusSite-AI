@@ -1,0 +1,54 @@
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    working_dir: /app
+    volumes:
+      - ./orchestrator:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - ./orchestrator/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8000:8000"
+    command: >
+      uvicorn main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  workspace:
+    image: node:20-slim
+    working_dir: /workspace
+    volumes:
+      - ./workspace:/workspace
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - WATCHPACK_POLLING_INTERVAL=500
+      - NEXT_TELEMETRY_DISABLED=1
+    ports:
+      - "3001:3000"
+    command: >
+      sh -lc "ln -sfn /workspace /app && npm install && npm run dev -- --hostname 0.0.0.0 --port 3000"
+
+  web_ui:
+    image: node:20-slim
+    working_dir: /web_ui
+    volumes:
+      - ./web_ui:/web_ui
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - WATCHPACK_POLLING_INTERVAL=500
+      - NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
+      - NEXT_PUBLIC_SANDBOX_PREVIEW_URL=http://localhost:3001
+    ports:
+      - "3002:3010"
+    command: >
+      sh -lc "npm install && npm run dev -- --hostname 0.0.0.0 --port 3010"
+

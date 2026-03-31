@@ -1,0 +1,43 @@
+.git
+.github
+.vscode
+.idea
+
+**/.DS_Store
+**/Thumbs.db
+
+**/node_modules
+**/.next
+**/dist
+**/out
+**/.turbo
+
+**/__pycache__
+**/*.pyc
+**/.venv
+**/venv
+
+# Secrets / env (runtime only)
+.env
+.env.*
+
+# Logs / debug artifacts
+**/*.log
+logs/
+
+# Python test / coverage caches
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/coverage
+**/.coverage
+
+# Local editor / tooling
+.cursor
+*.code-workspace
+
+# Archives / exports
+**/*.tar
+**/*.tar.gz
+**/*.zip
+

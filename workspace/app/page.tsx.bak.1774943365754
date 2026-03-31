@@ -1,0 +1,9 @@
+export default function TestPage() {
+  return (
+    <main className="h-screen w-screen flex items-center justify-center bg-purple-600">
+      <h1 className="text-6xl font-bold text-white animate-bounce">
+        HMR IS WORKING! 🚀
+      </h1>
+    </main>
+  );
+}
