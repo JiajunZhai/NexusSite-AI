@@ -1,0 +1,11 @@
+# NexusSite-AI Project Rules
+
+- **Tech Stack:** Python 3.10 (FastAPI), LangGraph, Next.js 14 (App Router), Docker, Tailwind CSS.
+- **Architecture:** Orchestrator (Backend) and Workspace (Next.js Sandbox) must be strictly isolated via Docker.
+- **Agent Design:** Use class-based agents in `agents/`. Each agent must have a clearly defined `SystemPrompt`.
+- **State Management:** Use `AgentState` TypedDict for LangGraph. Never pass the entire codebase in prompts; use file-based operations.
+- **Style:** All generated React components must use Tailwind CSS and follow Shadcn UI patterns.
+- **Error Handling:** Implement robust logging for Docker exec commands. If a build fails, capture stderr for the QA Agent.
+```
+
+---
