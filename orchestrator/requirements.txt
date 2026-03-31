@@ -1,0 +1,6 @@
+docker
+langgraph
+fastapi
+uvicorn[standard]
+psutil
+langchain-core

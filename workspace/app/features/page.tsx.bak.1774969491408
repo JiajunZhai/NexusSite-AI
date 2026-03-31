@@ -1,0 +1,61 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Brain, Code, Palette, ShieldCheck, Globe, Zap } from "lucide-react";
+
+export default function FeaturesPage() {
+  const features = [
+    {
+      icon: Brain,
+      title: "AI 需求分析",
+      desc: "自动理解您的业务目标与用户画像，生成结构化 PRD 与功能清单，确保开发方向零偏差。",
+    },
+    {
+      icon: Palette,
+      title: "智能视觉设计",
+      desc: "内置现代设计系统，基于品牌色与排版规范自动生成高保真 UI，支持暗色模式与响应式布局。",
+    },
+    {
+      icon: Code,
+      title: "自动代码生成",
+      desc: "将设计稿直接转化为 Next.js + Tailwind CSS 生产级代码，遵循最佳实践，开箱即用。",
+    },
+    {
+      icon: ShieldCheck,
+      title: "质量保障",
+      desc: "内置自动化测试、性能优化与 SEO 检查，确保生成的网站符合 Lighthouse 高分标准。",
+    },
+    {
+      icon: Globe,
+      title: "多语言支持",
+      desc: "一键生成 i18n 配置与多语言内容映射，轻松覆盖全球市场。",
+    },
+    {
+      icon: Zap,
+      title: "极速部署",
+      desc: "无缝对接 Vercel、Netlify 或自有服务器，支持自定义域名与 SSL 自动配置。",
+    },
+  ];
+
+  return (
+    <div className="container mx-auto px-4 md:px-6 py-20">
+      <div className="text-center mb-16">
+        <h1 className="text-4xl font-bold mb-4">平台核心能力</h1>
+        <p className="text-slate-400 max-w-2xl mx-auto">
+          从创意到上线，NexusSite-AI 提供全链路智能化工具，让复杂开发变得简单。
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {features.map((f, i) => (
+          <Card key={i} className="bg-slate-900/50 border-slate-800 hover:border-indigo-500/50 transition-all duration-300">
+            <CardHeader>
+              <f.icon className="h-10 w-10 text-indigo-400 mb-2" />
+              <CardTitle>{f.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base text-slate-300">{f.desc}</CardDescription>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}

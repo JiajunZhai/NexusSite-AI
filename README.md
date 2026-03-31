@@ -21,7 +21,7 @@
 - **自治工作流**：基于 LangGraph 的多智能体系统（MAS），模拟真实研发团队的协作方式。
 - **自愈闭环**：若构建失败或 UI 破坏，QA Guardian 会触发自动修复回路。
 - **视觉一致性**：集成多模态视觉能力，保证最终 UI 与设计意图一致。
-- **Docker 优先**：零配置运行环境，减少“在我电脑上能跑”的环境差异问题。
+- **Docker 优先**：零配置运行环境，减少"在我电脑上能跑"的环境差异问题。
 
 ---
 
@@ -56,6 +56,41 @@ graph TD
 
 ---
 
+## 📁 项目结构
+
+```
+NexusSite-AI/
+├── orchestrator/           # Python 后端 (FastAPI + LangGraph)
+│   ├── agents/             # 多智能体实现
+│   │   ├── pm_agent.py     # 策略产品经理
+│   │   ├── designer_agent.py # UI/UX 设计师
+│   │   ├── coder_agent.py  # 高级工程师
+│   │   ├── qa_agent.py     # 质量守护
+│   │   ├── reflector_agent.py # 反思智能体
+│   │   └── llm_client.py   # LLM 客户端
+│   ├── tools/              # 工具集
+│   │   ├── docker_tool.py  # Docker 沙盒管理
+│   │   └── log_bus.py      # 日志总线
+│   ├── workflow/           # LangGraph 状态机
+│   │   └── state_machine.py
+│   ├── requirements.txt    # Python 依赖清单
+│   ├── .env.example        # 环境变量示例
+│   └── main.py             # FastAPI 入口
+├── workspace/              # Next.js 沙盒 (AI 生成目标)
+│   ├── app/                # Next.js App Router 页面
+│   ├── components/         # UI 组件
+│   └── package.json        # Node.js 依赖
+├── web_ui/                 # 控制台 UI (Next.js)
+│   ├── app/                # 控制台页面
+│   ├── components/         # 控制台组件
+│   └── package.json        # Node.js 依赖
+├── docker-compose.yml      # 容器编排配置
+├── Dockerfile.orchestrator # Orchestrator 镜像定义
+└── README.md               # 本文档
+```
+
+---
+
 ## ⚡ 快速开始
 
 ### 前置条件
@@ -63,24 +98,75 @@ graph TD
 - **OpenRouter API Key**（必需，用于 4 专家调用）
 - （可选）**OpenCode Zen API Key**（如果你想用 `opencode/...` 模型）
 
+### 网络问题处理（可选）
+
+如果在拉取 Docker 镜像时遇到超时或网络错误（如 `dial tcp: connectex: A connection attempt failed`），可尝试以下方案：
+
+**方案 1：配置镜像加速器（推荐）**
+
+1. 打开 Docker Desktop → Settings → Docker Engine
+2. 在 `registry-mirrors` 中添加国内镜像源：
+
+```json
+"registry-mirrors": ["https://registry.docker-cn.com", "https://mirror.ccs.tencentyun.com"]
+```
+
+3. 重启 Docker Desktop 后重新运行 `docker compose up -d --build`
+
+**方案 2：手动提前拉取镜像**
+
+```bash
+docker pull python:3.10-slim
+docker pull node:20-slim
+```
+
+**方案 3：使用国内镜像源**
+
+修改 `Dockerfile.orchestrator` 和 `docker-compose.yml` 中的镜像地址为国内源：
+
+```dockerfile
+# Dockerfile.orchestrator
+FROM registry.cn-hangzhou.aliyuncs.com/library/python:3.10-slim
+```
+
+```yaml
+# docker-compose.yml
+workspace:
+  image: registry.cn-hangzhou.aliyuncs.com/library/node:20-slim
+```
+
+---
+
 ### 本项目启动后有哪些服务？
-- **Orchestrator API（后端）**：`http://localhost:8000`
-- **Web 控制台（UI）**：`http://localhost:3002`
-- **Workspace 预览（Next.js 沙盒）**：`http://localhost:3001`
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| **Orchestrator API** | `http://localhost:8000` | 后端服务（FastAPI + LangGraph） |
+| **Web 控制台** | `http://localhost:3002` | 工作台/对话框（交互控制中心） |
+| **Workspace 预览** | `http://localhost:3003` | AI 生成过程的实时预览 |
+| **项目官网** | `http://localhost:3003` | 营销网站/落地页（最终产出） |
 
 ### 安装与启动（推荐流程）
 1. **进入项目根目录**（本仓库目录）。
 
 2. **配置后端密钥**（必做）
 
+   复制 `.env.example` 为 `.env`：
+
+   ```bash
+   cp orchestrator/.env.example orchestrator/.env
+   ```
+
    打开 `orchestrator/.env`，至少填写：
 
-   - `OPENROUTER_API_KEY=...`
+   - `OPENROUTER_API_KEY=sk-or-v1-...`
    - `OPENROUTER_MODEL=qwen/qwen3.6-plus-preview:free`（默认已设置）
 
    可选（启用 Zen）：
 
-   - `OPENCODE_ZEN_API_KEY=...`
+   - `OPENCODE_ZEN_API_KEY=sk-...`
+
+   > 完整的环境变量说明请参考 `.env.example` 文件。
 
 3. **启动全部服务**
 
@@ -92,19 +178,95 @@ graph TD
 
    - 打开 **Web 控制台**：`http://localhost:3002`
    - 在输入框描述你要的网站/页面，然后发送
-   - 你可以点击输入框左侧 **⚙️** 打开“专家模型配置”
+   - 你可以点击输入框左侧 **⚙️** 打开"专家模型配置"
 
 ### 如何选择模型（OpenRouter / OpenCode Zen）
 本项目使用 **角色级别的 `model_map`**（PM/Designer/Coder/QA 各自独立）。
 
-- **OpenRouter**：在“专家模型配置”里先选 *OpenRouter / 提供商*，再选该提供商下的模型（例如 `qwen/...`、`openai/...`、`anthropic/...`）。
+- **OpenRouter**：在"专家模型配置"里先选 *OpenRouter / 提供商*，再选该提供商下的模型（例如 `qwen/...`、`openai/...`、`anthropic/...`）。
 - **OpenCode Zen**：选择 *OpenCode Zen / opencode-zen*，再选 `opencode/...` 模型。
   - Zen 模型调用参考官方文档：[OpenCode Zen](https://opencode.ai/docs/zen/)
   - 若未配置 `OPENCODE_ZEN_API_KEY`，选择 `opencode/...` 会报缺少 key（属预期行为）。
 
 ### 预览与导出
-- **预览**：打开 `http://localhost:3001`（或在 Web 控制台右上角点“预览”按钮）
-- **导出源码**：在 Web 控制台点“导出”，会下载后端打包的 `workspace/` 源码（不包含 `node_modules` / `.next` 等构建产物）
+- **预览 AI 生成过程**：打开 `http://localhost:3003`（或在 Web 控制台右上角点"预览"按钮）
+- **查看项目官网**：同上，`http://localhost:3003` 即为最终营销网站
+- **导出源码**：在 Web 控制台点"导出"，会下载后端打包的 `workspace/` 源码（不包含 `node_modules` / `.next` 等构建产物）
+
+---
+
+## 🔧 服务管理
+
+### 启动服务
+
+```bash
+# 启动全部服务（推荐）
+docker compose up -d
+
+# 首次启动或需要重新构建
+docker compose up -d --build
+```
+
+### 查看服务状态
+
+```bash
+docker compose ps
+```
+
+输出示例：
+```
+NAME                          IMAGE                       SERVICE        STATUS         PORTS
+nexussite-ai-orchestrator-1   nexussite-ai-orchestrator   orchestrator   Up 2 minutes   0.0.0.0:8000->8000/tcp
+nexussite-ai-web_ui-1         node:20-slim                web_ui         Up 2 minutes   0.0.0.0:3002->3010/tcp
+nexussite-ai-workspace-1      node:20-slim                workspace      Up 2 minutes   0.0.0.0:3003->3000/tcp
+```
+
+### 重启服务
+
+```bash
+# 重启单个服务
+docker compose restart orchestrator
+docker compose restart web_ui
+docker compose restart workspace
+
+# 重启全部服务
+docker compose restart
+```
+
+### 停止服务
+
+```bash
+# 停止所有服务（保留数据）
+docker compose down
+
+# 停止并清理数据卷（会删除所有容器数据）
+docker compose down -v
+```
+
+### 查看日志
+
+```bash
+# 查看全部服务日志
+docker compose logs -f
+
+# 查看特定服务日志
+docker compose logs -f orchestrator
+docker compose logs -f web_ui
+docker compose logs -f workspace
+
+# 查看最近 20 行日志
+docker compose logs orchestrator --tail 20
+```
+
+### 服务端口说明
+
+| 服务 | 访问地址 | 说明 |
+|------|----------|------|
+| **Orchestrator API** | `http://localhost:8000` | 后端服务（FastAPI + LangGraph） |
+| **健康检查** | `http://localhost:8000/health` | 服务状态监控页面 |
+| **Web 控制台** | `http://localhost:3002` | 工作台/对话框（交互控制中心） |
+| **Workspace 预览** | `http://localhost:3003` | AI 生成过程的实时预览 |
+| **项目官网** | `http://localhost:3003` | 营销网站/落地页（最终产出） |
 
 ---
 
@@ -118,9 +280,19 @@ graph TD
 - **导出 workspace**：`GET /api/export`
 
 ---
-
 ## 🧯 常见问题（FAQ）
-### 1) `http://localhost:3001` 预览 500（Internal Server Error）
+
+### 1) Docker 镜像拉取超时/失败
+
+如果在 `docker compose up -d --build` 时出现网络超时错误：
+
+```
+failed to do request: Head "https://registry-1.docker.io/v2/...": dial tcp: connectex: A connection attempt failed
+```
+
+请参考上文「网络问题处理」章节配置镜像加速器。
+
+### 2) `http://localhost:3003` 预览 500（Internal Server Error）
 通常是 **workspace 的 Next.js 编译失败**（比如引用了不存在的 `@/components/...`）。解决方式：
 
 ```bash
@@ -133,11 +305,11 @@ docker compose logs -f workspace
 docker compose restart workspace
 ```
 
-### 2) 修改文件后 HMR 不生效 / 更新很慢
+### 3) 修改文件后 HMR 不生效 / 更新很慢
 Windows + Docker 的文件监听可能需要 polling。我们已在 `docker-compose.yml` 为 `workspace` 开启：
 `CHOKIDAR_USEPOLLING / WATCHPACK_POLLING`。
 
-### 3) 选择 Zen 模型报错
+### 4) 选择 Zen 模型报错
 请确认 `orchestrator/.env` 已填写 `OPENCODE_ZEN_API_KEY`，并重启 orchestrator：
 
 ```bash

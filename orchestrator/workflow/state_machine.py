@@ -10,6 +10,14 @@ from agents.pm_agent import PMAgent
 from agents.qa_agent import QAAgent
 from agents.reflector_agent import ReflectorAgent
 
+# Module-level log_bus reference, set by main.py before running the graph.
+_log_bus = None
+
+
+def set_log_bus(log_bus) -> None:
+    global _log_bus
+    _log_bus = log_bus
+
 
 class AgentState(TypedDict, total=False):
     """
@@ -38,8 +46,11 @@ def designer_node(state: AgentState) -> AgentState:
 
 
 def coder_node(state: AgentState) -> AgentState:
-    print("[node] Coder")
-    return CoderAgent().run(state)
+    print("[node] Coder — entering, calling CoderAgent.run()")
+    agent = CoderAgent()
+    if _log_bus is not None:
+        agent.log_bus = _log_bus
+    return agent.run(state)
 
 
 def reflector_node(state: AgentState) -> AgentState:
@@ -73,10 +84,16 @@ def _qa_should_retry(state: AgentState) -> str:
     return END
 
 
-def build_graph():
+def build_graph(start_node: str = "PM"):
     """
     Build and compile the LangGraph state machine:
     PM -> Designer -> (Reflector?) -> Coder -> QA -> (Coder | END)
+
+    Args:
+        start_node: Entry point for the graph.
+            - "PM": Full workflow (default)
+            - "Designer": Skip PM, start from Designer
+            - "Coder": Skip PM + Designer, start from Coder
     """
     g = StateGraph(AgentState)
 
@@ -86,12 +103,19 @@ def build_graph():
     g.add_node("Coder", coder_node)
     g.add_node("QA", qa_node)
 
-    g.set_entry_point("PM")
-    g.add_edge("PM", "Designer")
+    g.set_entry_point(start_node)
+
+    if start_node == "PM":
+        g.add_edge("PM", "Designer")
+    elif start_node == "Designer":
+        pass  # Already set as entry point
+
     def _after_designer(state: AgentState) -> str:
         return "Reflector" if bool(state.get("deep_think") or False) else "Coder"
 
-    g.add_conditional_edges("Designer", _after_designer, {"Reflector": "Reflector", "Coder": "Coder"})
+    g.add_conditional_edges(
+        "Designer", _after_designer, {"Reflector": "Reflector", "Coder": "Coder"}
+    )
     g.add_edge("Reflector", "Coder")
     g.add_edge("Coder", "QA")
 
@@ -103,3 +127,6 @@ def build_graph():
 # Export a compiled graph instance for simple imports/testing.
 graph = build_graph()
 
+# Pre-built graphs for different entry points
+graph_from_designer = build_graph(start_node="Designer")
+graph_from_coder = build_graph(start_node="Coder")

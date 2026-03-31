@@ -20,6 +20,7 @@ export function ProjectSidebar({
   doneSteps,
   files,
   variant = "panel",
+  onSelectFile,
 }: {
   projectName: string;
   activeStep: Step | null;

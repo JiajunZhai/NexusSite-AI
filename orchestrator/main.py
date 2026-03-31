@@ -15,7 +15,7 @@ from langchain_core.messages import HumanMessage
 
 from tools.docker_tool import SandboxManager
 from tools.log_bus import LogBus
-from workflow.state_machine import graph
+from workflow.state_machine import graph, graph_from_designer, set_log_bus
 
 app = FastAPI(title="NexusSite-AI Orchestrator", version="0.1.0")
 
@@ -28,6 +28,7 @@ app.add_middleware(
 )
 
 log_bus = LogBus()
+set_log_bus(log_bus)
 sandbox = SandboxManager()
 latest_runs: Dict[str, Dict[str, Any]] = {}
 
@@ -42,6 +43,7 @@ def list_models():
     """
     Return a model catalog grouped by provider (OpenRouter), plus OpenCode Zen options.
     """
+
     def _openrouter_headers() -> Dict[str, str]:
         api_key = os.getenv("OPENROUTER_API_KEY") or ""
         app_name = os.getenv("OPENROUTER_APP_NAME") or "NexusSite-AI"
@@ -73,7 +75,11 @@ def list_models():
     curated = [
         ("qwen", "qwen/qwen3.6-plus-preview:free", "Qwen 3.6 Plus Preview (Free)"),
         ("google", "google/gemma-2-9b-it:free", "Gemma 2 9B IT (Free)"),
-        ("meta-llama", "meta-llama/llama-3.1-8b-instruct:free", "Llama 3.1 8B Instruct (Free)"),
+        (
+            "meta-llama",
+            "meta-llama/llama-3.1-8b-instruct:free",
+            "Llama 3.1 8B Instruct (Free)",
+        ),
         ("meta-llama", "meta-llama/llama-3.1-70b-instruct", "Llama 3.1 70B Instruct"),
         ("anthropic", "anthropic/claude-3.5-sonnet", "Claude 3.5 Sonnet"),
         ("openai", "openai/gpt-4o-mini", "GPT-4o mini"),
@@ -88,10 +94,14 @@ def list_models():
             if not isinstance(mid, str) or "/" not in mid:
                 continue
             provider = mid.split("/", 1)[0]
-            provider_to_models.setdefault(provider, []).append({"id": mid, "label": str(name)})
+            provider_to_models.setdefault(provider, []).append(
+                {"id": mid, "label": str(name)}
+            )
     except Exception:
         for provider, mid, label in curated:
-            provider_to_models.setdefault(provider, []).append({"id": mid, "label": label})
+            provider_to_models.setdefault(provider, []).append(
+                {"id": mid, "label": label}
+            )
 
     # sort providers/models
     providers = sorted(provider_to_models.keys())
@@ -144,6 +154,12 @@ def list_models():
             "coder": "qwen/qwen3.6-plus-preview:free",
             "qa": "qwen/qwen3.6-plus-preview:free",
         },
+        "balanced": {
+            "pm": "google/gemma-2-9b-it:free",
+            "designer": "google/gemma-2-9b-it:free",
+            "coder": "qwen/qwen3.6-plus-preview:free",
+            "qa": "openai/gpt-4o-mini",
+        },
         "strong": {
             "pm": "openai/gpt-4o-mini",
             "designer": "openai/gpt-4o-mini",
@@ -157,6 +173,33 @@ def list_models():
         "coder": "anthropic/claude-3.5-sonnet",
         "qa": "openai/gpt-4o-mini",
     }
+
+    # Build flat model list with metadata for frontend
+    flat_models = []
+    for p in providers:
+        for m in provider_to_models.get(p, []):
+            is_free = m["id"].endswith(":free") or "free" in m["id"].lower()
+            flat_models.append(
+                {
+                    "id": m["id"],
+                    "label": m["label"],
+                    "provider": p,
+                    "kind": "openrouter",
+                    "is_free": is_free,
+                }
+            )
+    for m in zen_models:
+        is_free = m["id"].endswith(":free") or "free" in m["id"].lower()
+        flat_models.append(
+            {
+                "id": m["id"],
+                "label": m["label"],
+                "provider": "opencode-zen",
+                "kind": "opencode_zen",
+                "is_free": is_free,
+            }
+        )
+
     return {
         "ok": True,
         "openrouter": {
@@ -167,6 +210,7 @@ def list_models():
             "providers": ["opencode-zen"],
             "models_by_provider": {"opencode-zen": zen_models},
         },
+        "flat_models": flat_models,
         "presets": presets,
         "recommended": recommended,
     }
@@ -196,11 +240,20 @@ async def logs_ws(ws: WebSocket):
 def run_chain(payload: Dict[str, Any] = Body(default_factory=dict)):
     """
     Run the LangGraph workflow once and publish per-node progress to log bus.
+
+    Supports two modes:
+    - mode="plan": Only run PM node, return PRD for user confirmation
+    - mode="full": Run complete workflow (default, for backward compatibility)
     """
-    prompt = payload.get("prompt") or payload.get("message") or "Create a simple marketing website."
+    prompt = (
+        payload.get("prompt")
+        or payload.get("message")
+        or "Create a simple marketing website."
+    )
     model_id: Optional[str] = payload.get("model_id")  # legacy
     model_map = payload.get("model_map")
     deep_think = bool(payload.get("deep_think") or False)
+    mode = payload.get("mode", "full")  # "plan" or "full"
 
     # Normalize model_map
     normalized_map: Optional[Dict[str, str]] = None
@@ -210,7 +263,11 @@ def run_chain(payload: Dict[str, Any] = Body(default_factory=dict)):
             if not k:
                 continue
             ks = str(k).strip().lower()
-            if ks in {"pm", "designer", "coder", "qa"} and isinstance(v, str) and v.strip():
+            if (
+                ks in {"pm", "designer", "coder", "qa"}
+                and isinstance(v, str)
+                and v.strip()
+            ):
                 normalized_map[ks] = v.strip()
     elif isinstance(model_id, str) and model_id.strip():
         # Backwards-compatible: single model applies to all roles.
@@ -236,33 +293,96 @@ def run_chain(payload: Dict[str, Any] = Body(default_factory=dict)):
     run_id = str(uuid.uuid4())
 
     def _run():
-        log_bus.publish_event(
-            node_name="System",
-            kind="status",
-            message=f"run_id={run_id} 开始执行工作流（PM → Designer → Coder → QA）",
-            data={"run_id": run_id},
-        )
+        # Select graph based on mode
+        if mode == "plan":
+            active_graph = graph  # Full graph, but we'll stop after PM
+            log_bus.publish_event(
+                node_name="System",
+                kind="status",
+                message=f"run_id={run_id} 开始分析需求（PM 阶段）",
+                data={"run_id": run_id},
+            )
+        else:
+            active_graph = graph
+            log_bus.publish_event(
+                node_name="System",
+                kind="status",
+                message=f"run_id={run_id} 开始执行工作流（PM → Designer → Coder → QA）",
+                data={"run_id": run_id},
+            )
+
         last_state: Dict[str, Any] = state
         try:
-            for event in graph.stream(state):
+            for event in active_graph.stream(state):
                 node = next(iter(event.keys()))
                 if isinstance(event.get(node), dict):
                     last_state = event[node]
                     latest_runs[run_id] = last_state
 
-                if node == "PM":
-                    log_bus.publish_event(node_name="PM", kind="status", message="正在分析您的需求…")
-                elif node == "Designer":
-                    log_bus.publish_event(node_name="Designer", kind="status", message="正在生成视觉规范（theme_config）…")
-                elif node == "Coder":
-                    log_bus.publish_event(node_name="Coder", kind="status", message="正在生成代码并写入 Sandbox…")
-                elif node == "QA":
-                    log_bus.publish_event(node_name="QA", kind="status", message="正在执行 npm run build 进行验收…")
-                else:
-                    log_bus.publish_event(node_name=str(node), kind="status", message="运行中…")
+                # For plan mode, stop after PM
+                if mode == "plan" and node == "PM":
+                    # Publish PRD event before breaking
+                    prd = (
+                        event[node].get("prd")
+                        if isinstance(event[node], dict)
+                        else None
+                    )
+                    if isinstance(prd, dict):
+                        log_bus.publish_event(
+                            node_name="PM",
+                            kind="prd",
+                            message=f"PRD 已生成：{prd.get('project_name')}",
+                            data={
+                                "project_name": prd.get("project_name"),
+                                "pages": prd.get("pages"),
+                                "features": prd.get("features"),
+                                "user_flow": prd.get("user_flow"),
+                            },
+                        )
+                    log_bus.publish_event(
+                        node_name="System",
+                        kind="plan_ready",
+                        message="需求分析完成，等待确认",
+                        data={
+                            "run_id": run_id,
+                            "prd": prd if isinstance(prd, dict) else None,
+                        },
+                    )
+                    break
 
                 if node == "PM":
-                    prd = event[node].get("prd") if isinstance(event[node], dict) else None
+                    log_bus.publish_event(
+                        node_name="PM", kind="status", message="正在分析您的需求…"
+                    )
+                elif node == "Designer":
+                    log_bus.publish_event(
+                        node_name="Designer",
+                        kind="status",
+                        message="正在生成视觉规范（theme_config）…",
+                    )
+                elif node == "Coder":
+                    log_bus.publish_event(
+                        node_name="Coder",
+                        kind="status",
+                        message="正在生成代码并写入 Sandbox…",
+                    )
+                elif node == "QA":
+                    log_bus.publish_event(
+                        node_name="QA",
+                        kind="status",
+                        message="正在执行 npm run build 进行验收…",
+                    )
+                else:
+                    log_bus.publish_event(
+                        node_name=str(node), kind="status", message="运行中…"
+                    )
+
+                if node == "PM":
+                    prd = (
+                        event[node].get("prd")
+                        if isinstance(event[node], dict)
+                        else None
+                    )
                     if isinstance(prd, dict):
                         log_bus.publish_event(
                             node_name="PM",
@@ -276,8 +396,14 @@ def run_chain(payload: Dict[str, Any] = Body(default_factory=dict)):
                             },
                         )
                 if node == "Designer":
-                    ds = event[node].get("design_spec") if isinstance(event[node], dict) else None
-                    if isinstance(ds, dict) and isinstance(ds.get("theme_config"), dict):
+                    ds = (
+                        event[node].get("design_spec")
+                        if isinstance(event[node], dict)
+                        else None
+                    )
+                    if isinstance(ds, dict) and isinstance(
+                        ds.get("theme_config"), dict
+                    ):
                         tc = ds["theme_config"]
                         log_bus.publish_event(
                             node_name="Designer",
@@ -286,7 +412,11 @@ def run_chain(payload: Dict[str, Any] = Body(default_factory=dict)):
                             data=tc,
                         )
                 if node == "Coder":
-                    cf = event[node].get("code_files") if isinstance(event[node], dict) else None
+                    cf = (
+                        event[node].get("code_files")
+                        if isinstance(event[node], dict)
+                        else None
+                    )
                     if isinstance(cf, dict) and cf:
                         files = sorted(list(cf.keys()))
                         log_bus.publish_event(
@@ -296,8 +426,16 @@ def run_chain(payload: Dict[str, Any] = Body(default_factory=dict)):
                             data={"files": files},
                         )
                 if node == "QA":
-                    reports = event[node].get("test_reports") if isinstance(event[node], dict) else None
-                    if reports and isinstance(reports, list) and isinstance(reports[-1], dict):
+                    reports = (
+                        event[node].get("test_reports")
+                        if isinstance(event[node], dict)
+                        else None
+                    )
+                    if (
+                        reports
+                        and isinstance(reports, list)
+                        and isinstance(reports[-1], dict)
+                    ):
                         last = reports[-1]
                         log_bus.publish_event(
                             node_name="QA",
@@ -311,13 +449,159 @@ def run_chain(payload: Dict[str, Any] = Body(default_factory=dict)):
                             },
                         )
         except Exception as e:
-            log_bus.publish_event(node_name="System", kind="error", message=f"run_id={run_id} 运行异常: {e}", data={"run_id": run_id})
+            log_bus.publish_event(
+                node_name="System",
+                kind="error",
+                message=f"run_id={run_id} 运行异常: {e}",
+                data={"run_id": run_id},
+            )
         finally:
             latest_runs[run_id] = last_state
-            log_bus.publish_event(node_name="System", kind="done", message=f"run_id={run_id} 工作流完成", data={"run_id": run_id})
+            if mode != "plan":
+                log_bus.publish_event(
+                    node_name="System",
+                    kind="done",
+                    message=f"run_id={run_id} 工作流完成",
+                    data={"run_id": run_id},
+                )
 
     threading.Thread(target=_run, daemon=True).start()
     return {"ok": True, "run_id": run_id}
+
+
+@app.post("/api/continue")
+def continue_chain(payload: Dict[str, Any] = Body(default_factory=dict)):
+    """
+    Continue workflow from PM output (Designer → Coder → QA).
+    Called after user confirms the PRD.
+    """
+    run_id = payload.get("run_id")
+    if not run_id or run_id not in latest_runs:
+        raise HTTPException(status_code=400, detail="Invalid or missing run_id")
+
+    # Get the state from the completed PM run
+    state = dict(latest_runs[run_id])
+    model_map = payload.get("model_map")
+    deep_think = bool(payload.get("deep_think") or False)
+
+    # Update state with any new model_map or settings
+    if isinstance(model_map, dict):
+        state["model_map"] = model_map
+    if deep_think:
+        state["deep_think"] = True
+
+    # Start from Designer node
+    continue_run_id = str(uuid.uuid4())
+
+    def _run():
+        log_bus.publish_event(
+            node_name="System",
+            kind="status",
+            message=f"run_id={continue_run_id} 用户已确认需求，继续执行（Designer → Coder → QA）",
+            data={"run_id": continue_run_id, "parent_run_id": run_id},
+        )
+        last_state: Dict[str, Any] = state
+        try:
+            for event in graph_from_designer.stream(state):
+                node = next(iter(event.keys()))
+                if isinstance(event.get(node), dict):
+                    last_state = event[node]
+                    latest_runs[continue_run_id] = last_state
+
+                if node == "Designer":
+                    log_bus.publish_event(
+                        node_name="Designer",
+                        kind="status",
+                        message="正在生成视觉规范（theme_config）…",
+                    )
+                elif node == "Coder":
+                    log_bus.publish_event(
+                        node_name="Coder",
+                        kind="status",
+                        message="正在生成代码并写入 Sandbox…",
+                    )
+                elif node == "QA":
+                    log_bus.publish_event(
+                        node_name="QA",
+                        kind="status",
+                        message="正在执行 npm run build 进行验收…",
+                    )
+                else:
+                    log_bus.publish_event(
+                        node_name=str(node), kind="status", message="运行中…"
+                    )
+
+                if node == "Designer":
+                    ds = (
+                        event[node].get("design_spec")
+                        if isinstance(event[node], dict)
+                        else None
+                    )
+                    if isinstance(ds, dict) and isinstance(
+                        ds.get("theme_config"), dict
+                    ):
+                        tc = ds["theme_config"]
+                        log_bus.publish_event(
+                            node_name="Designer",
+                            kind="theme_config",
+                            message="theme_config 已生成",
+                            data=tc,
+                        )
+                if node == "Coder":
+                    cf = (
+                        event[node].get("code_files")
+                        if isinstance(event[node], dict)
+                        else None
+                    )
+                    if isinstance(cf, dict) and cf:
+                        files = sorted(list(cf.keys()))
+                        log_bus.publish_event(
+                            node_name="Coder",
+                            kind="files_written",
+                            message=f"已写入 {len(files)} 个文件",
+                            data={"files": files},
+                        )
+                if node == "QA":
+                    reports = (
+                        event[node].get("test_reports")
+                        if isinstance(event[node], dict)
+                        else None
+                    )
+                    if (
+                        reports
+                        and isinstance(reports, list)
+                        and isinstance(reports[-1], dict)
+                    ):
+                        last = reports[-1]
+                        log_bus.publish_event(
+                            node_name="QA",
+                            kind="build_result",
+                            message="Build 验收完成",
+                            data={
+                                "exit_code": last.get("exit_code"),
+                                "error": last.get("error"),
+                                "summary": last.get("summary"),
+                                "suggestions": last.get("suggestions"),
+                            },
+                        )
+        except Exception as e:
+            log_bus.publish_event(
+                node_name="System",
+                kind="error",
+                message=f"run_id={continue_run_id} 运行异常: {e}",
+                data={"run_id": continue_run_id},
+            )
+        finally:
+            latest_runs[continue_run_id] = last_state
+            log_bus.publish_event(
+                node_name="System",
+                kind="done",
+                message=f"run_id={continue_run_id} 工作流完成",
+                data={"run_id": continue_run_id},
+            )
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"ok": True, "run_id": continue_run_id}
 
 
 @app.get("/api/runs/{run_id}")
@@ -370,4 +654,3 @@ def read_file(path: str):
         return {"ok": True, "path": path, "content": text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

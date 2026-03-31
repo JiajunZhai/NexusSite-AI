@@ -1,0 +1,41 @@
+import Link from 'next/link';
+import { Sparkles, Github, Twitter, Linkedin } from 'lucide-react';
+
+export default function Footer() {
+  return (
+    <footer className="border-t border-white/10 bg-[#0a0a0a] py-12">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="col-span-1 md:col-span-2">
+            <Link href="/" className="flex items-center gap-2 font-bold text-xl mb-4">
+              <Sparkles className="h-6 w-6 text-indigo-500" />
+              <span>NexusSite<span className="text-indigo-400">-AI</span></span>
+            </Link>
+            <p className="text-zinc-500 max-w-sm">
+              AI 驱动的网站生成平台。从需求到部署，只需几分钟。
+            </p>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-4 text-white">产品</h3>
+            <ul className="space-y-2 text-sm text-zinc-500">
+              <li><Link href="/features" className="hover:text-indigo-400 transition-colors">功能介绍</Link></li>
+              <li><Link href="/pricing" className="hover:text-indigo-400 transition-colors">定价方案</Link></li>
+              <li><Link href="#" className="hover:text-indigo-400 transition-colors">更新日志</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-4 text-white">关注我们</h3>
+            <div className="flex gap-4">
+              <a href="#" className="text-zinc-500 hover:text-white transition-colors"><Twitter className="h-5 w-5" /></a>
+              <a href="#" className="text-zinc-500 hover:text-white transition-colors"><Github className="h-5 w-5" /></a>
+              <a href="#" className="text-zinc-500 hover:text-white transition-colors"><Linkedin className="h-5 w-5" /></a>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-white/10 pt-8 text-center text-sm text-zinc-600">
+          © {new Date().getFullYear()} NexusSite-AI. All rights reserved.
+        </div>
+      </div>
+    </footer>
+  );
+}

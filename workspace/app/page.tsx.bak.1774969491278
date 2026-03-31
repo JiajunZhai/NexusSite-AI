@@ -1,0 +1,110 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, Brain, Code, Palette, Rocket, Zap } from "lucide-react";
+
+export default function HomePage() {
+  return (
+    <div className="flex flex-col items-center">
+      {/* Hero */}
+      <section className="w-full py-24 md:py-32 lg:py-40 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent pointer-events-none" />
+        <div className="container mx-auto px-4 md:px-6 text-center relative z-10">
+          <div className="inline-flex items-center rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-sm font-medium text-indigo-300 mb-6">
+            <Zap className="mr-2 h-4 w-4" /> 全新 AI 引擎已上线
+          </div>
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-400">
+            AI 驱动的网站生成平台
+          </h1>
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
+            从需求到上线，只需一句话。智能规划、自动设计、生产级代码，让创业者与开发者专注业务本身。
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-lg px-8">
+              立即开始 <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button variant="outline" size="lg" className="text-lg px-8">
+              查看演示
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Workflow */}
+      <section className="w-full py-20 bg-slate-900/50">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">极简工作流</h2>
+            <p className="text-slate-400 max-w-xl mx-auto">四步完成从 0 到 1 的网站构建，全程 AI 辅助。</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {[
+              { icon: Brain, title: "1. 输入需求", desc: "用自然语言描述您的想法，AI 自动解析并生成 PRD。" },
+              { icon: Palette, title: "2. 智能设计", desc: "基于设计系统自动生成高保真 UI 与交互原型。" },
+              { icon: Code, title: "3. 自动编码", desc: "一键转化为 Next.js + Tailwind 生产级代码。" },
+              { icon: Rocket, title: "4. 部署上线", desc: "内置 CI/CD，一键推送到 Vercel 或自有服务器。" },
+            ].map((step, i) => (
+              <Card key={i} className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-colors">
+                <CardHeader>
+                  <step.icon className="h-10 w-10 text-indigo-400 mb-2" />
+                  <CardTitle className="text-xl">{step.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base">{step.desc}</CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* User Cases */}
+      <section className="w-full py-20">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">深受用户信赖</h2>
+            <p className="text-slate-400 max-w-xl mx-auto">助力创业者、中小企业与独立开发者快速验证想法。</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { name: "李明", role: "独立开发者", quote: "以前需要一周的落地页，现在 10 分钟搞定，代码质量极高。" },
+              { name: "Sarah Chen", role: "初创公司 CEO", quote: "AI 生成的 PRD 非常精准，大幅降低了沟通成本。" },
+              { name: "TechFlow Studio", role: "设计工作室", quote: "设计到代码的无缝衔接，彻底改变了我们的工作流。" },
+            ].map((user, i) => (
+              <Card key={i} className="bg-slate-900/50 border-slate-800">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                      {user.name[0]}
+                    </div>
+                    <div>
+                      <p className="font-semibold">{user.name}</p>
+                      <p className="text-sm text-slate-400">{user.role}</p>
+                    </div>
+                  </div>
+                  <p className="text-slate-300 italic">"{user.quote}"</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="w-full py-20">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 p-8 md:p-16 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
+            <div className="relative z-10">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">准备好构建您的下一个项目了吗？</h2>
+              <p className="text-indigo-100 max-w-xl mx-auto mb-8">加入数千名开发者，体验 AI 驱动的高效建站流程。</p>
+              <Button size="lg" className="bg-white text-indigo-700 hover:bg-slate-100 text-lg px-8">
+                免费开始使用
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Files, Package, Rocket, Terminal } from "lucide-react";
+import { Files, Package, Rocket, Terminal, Info } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,13 @@ export function Navbar({
   onToggleLogs,
   onOpenPreview,
   onExport,
+  marketingUrl,
 }: {
   onToggleDrawer: () => void;
   onToggleLogs: () => void;
   onOpenPreview: () => void;
   onExport: () => void;
+  marketingUrl: string;
 }) {
   return (
     <motion.header
@@ -55,6 +57,17 @@ export function Navbar({
             transition={{ type: "spring", damping: 18, stiffness: 140 }}
             className="flex items-center gap-1 rounded-full bg-zinc-100 px-1 py-1"
           >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => window.open(marketingUrl, "_blank")}
+                title="关于 NexusSite"
+                className="text-zinc-500 hover:text-zinc-900 hover:bg-white/60"
+              >
+                <Info className="h-4 w-4" />
+              </Button>
+            </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="ghost"

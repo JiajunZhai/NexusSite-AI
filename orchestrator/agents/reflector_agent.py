@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict
 
 from agents.llm_client import LLMError, OpenRouterClient
@@ -31,7 +31,7 @@ Given the PRD and theme_config, produce a short implementation plan and key risk
 
 @dataclass
 class ReflectorAgent:
-    llm: OpenRouterClient = OpenRouterClient()
+    llm: OpenRouterClient = field(default_factory=OpenRouterClient)
 
     def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
         prd = state.get("prd") or {}
@@ -41,7 +41,9 @@ class ReflectorAgent:
             else None
         )
 
-        payload = json.dumps({"prd": prd, "theme_config": theme_config}, ensure_ascii=False)
+        payload = json.dumps(
+            {"prd": prd, "theme_config": theme_config}, ensure_ascii=False
+        )
 
         model_map = state.get("model_map") or {}
         model_id = model_map.get("coder") if isinstance(model_map, dict) else None
@@ -70,4 +72,3 @@ class ReflectorAgent:
 
         state["reflector_notes"] = notes
         return state
-

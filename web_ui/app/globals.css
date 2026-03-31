@@ -6,3 +6,23 @@ html,
 body {
   height: 100%;
 }
+
+/* Thin scrollbar for textarea and scrollable areas */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #a1a1aa transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #a1a1aa;
+  border-radius: 3px;
+}

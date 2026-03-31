@@ -1,0 +1,29 @@
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "NexusSite-AI | AI 驱动的网站生成平台",
+  description: "AI 驱动的网站生成平台，自动理解需求、智能设计、自动编码，助力创业者与开发者快速上线。",
+  keywords: ["AI 建站", "智能网站生成", "AI 设计", "自动编码"],
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="zh-CN" className="dark">
+      <body className={`${inter.className} min-h-screen bg-slate-950 text-slate-50 antialiased flex flex-col`}>
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </body>
+    </html>
+  );
+}

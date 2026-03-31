@@ -1,0 +1,104 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check } from "lucide-react";
+
+export default function PricingPage() {
+  const plans = [
+    {
+      name: "免费版",
+      price: "¥0",
+      desc: "适合个人开发者与小型项目",
+      features: ["每月 3 次生成额度", "基础模板库", "社区支持", "导出标准代码"],
+      cta: "开始使用",
+      popular: false,
+    },
+    {
+      name: "专业版",
+      price: "¥99/月",
+      desc: "适合成长型团队与中小企业",
+      features: ["无限生成次数", "高级设计系统", "优先技术支持", "自定义域名部署", "SEO 优化工具"],
+      cta: "升级专业版",
+      popular: true,
+    },
+    {
+      name: "企业版",
+      price: "定制报价",
+      desc: "适合大型组织与复杂业务",
+      features: ["私有化部署选项", "专属 AI 模型微调", "SLA 保障", "团队协作与权限管理", "API 集成支持"],
+      cta: "联系销售",
+      popular: false,
+    },
+  ];
+
+  return (
+    <div className="container mx-auto px-4 md:px-6 py-20">
+      <div className="text-center mb-16">
+        <h1 className="text-4xl font-bold mb-4">灵活的定价方案</h1>
+        <p className="text-slate-400 max-w-2xl mx-auto">
+          无论您是个人开发者还是企业团队，都能找到最适合您的方案。
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {plans.map((plan) => (
+          <Card
+            key={plan.name}
+            className={`relative flex flex-col ${
+              plan.popular
+                ? "border-indigo-500 bg-slate-900 shadow-lg shadow-indigo-500/10"
+                : "border-slate-800 bg-slate-900/50"
+            }`}
+          >
+            {plan.popular && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                最受欢迎
+              </div>
+            )}
+            <CardHeader>
+              <CardTitle>{plan.name}</CardTitle>
+              <CardDescription>{plan.desc}</CardDescription>
+              <div className="mt-4">
+                <span className="text-4xl font-bold">{plan.price}</span>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <ul className="space-y-3">
+                {plan.features.map((feat) => (
+                  <li key={feat} className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="h-4 w-4 text-indigo-400" />
+                    {feat}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className={`w-full ${
+                  plan.popular ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-800 hover:bg-slate-700"
+                }`}
+              >
+                {plan.cta}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* FAQ */}
+      <div className="mt-24 max-w-3xl mx-auto">
+        <h2 className="text-2xl font-bold mb-8 text-center">常见问题</h2>
+        <div className="space-y-4">
+          {[
+            { q: "生成的代码可以商用吗？", a: "完全可以。您拥有生成代码的完整版权，可自由用于商业项目。" },
+            { q: "支持哪些技术栈导出？", a: "目前默认导出 Next.js + Tailwind CSS，后续将支持 Vue、React 原生等。" },
+            { q: "如何保证生成质量？", a: "我们内置了自动化测试、性能优化与代码审查流程，确保输出符合生产标准。" },
+          ].map((faq) => (
+            <div key={faq.q} className="border-b border-slate-800 pb-4">
+              <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
+              <p className="text-slate-400">{faq.a}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

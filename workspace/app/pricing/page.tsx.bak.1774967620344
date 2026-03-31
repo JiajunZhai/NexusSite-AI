@@ -1,0 +1,122 @@
+'use client';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+
+const plans = [
+  {
+    name: '免费版',
+    price: '¥0',
+    period: '/月',
+    desc: '适合个人开发者与小型项目体验',
+    features: ['每月 3 次生成额度', '基础组件库', '社区支持', '导出标准 Next.js 代码'],
+    cta: '开始使用',
+    popular: false,
+  },
+  {
+    name: '专业版',
+    price: '¥99',
+    period: '/月',
+    desc: '适合初创团队与中小企业',
+    features: ['无限次生成额度', '高级设计系统', '优先技术支持', '自定义域名与 SEO 优化', '团队协作 (最多 5 人)'],
+    cta: '立即升级',
+    popular: true,
+  },
+  {
+    name: '企业版',
+    price: '定制',
+    period: '',
+    desc: '适合大型组织与定制化需求',
+    features: ['私有化部署选项', '专属 AI 模型微调', 'SLA 99.9% 保障', '无限团队成员', '专属客户成功经理'],
+    cta: '联系销售',
+    popular: false,
+  },
+];
+
+const faqs = [
+  { q: '生成的代码质量如何？', a: '我们采用生产级标准，输出符合 Next.js App Router 最佳实践的代码，包含完整的 TypeScript 类型定义、响应式布局与无障碍访问支持。' },
+  { q: '可以随时更换套餐吗？', a: '可以。您可以随时升级或降级套餐，费用将按剩余天数自动折算。' },
+  { q: '数据安全如何保障？', a: '所有数据均经过加密传输与存储。企业版支持私有化部署，确保核心业务数据完全隔离。' },
+  { q: '是否支持退款？', a: '专业版与企业版提供 14 天无理由退款保证。如果您不满意，我们将全额退款。' },
+];
+
+export default function PricingPage() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  return (
+    <div className="container mx-auto px-4 py-20">
+      <div className="text-center mb-16">
+        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+          透明定价，<span className="text-gradient">按需选择</span>
+        </h1>
+        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+          从个人项目到企业级应用，总有一款适合您。所有套餐均包含 14 天免费试用。
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-8 mb-24">
+        {plans.map((plan) => (
+          <Card
+            key={plan.name}
+            className={`relative flex flex-col ${
+              plan.popular ? 'border-indigo-500 shadow-lg shadow-indigo-500/10 bg-slate-900/80' : 'bg-slate-900/40'
+            }`}
+          >
+            {plan.popular && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                最受欢迎
+              </div>
+            )}
+            <CardHeader>
+              <CardTitle className="text-xl">{plan.name}</CardTitle>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-4xl font-bold">{plan.price}</span>
+                <span className="text-slate-400">{plan.period}</span>
+              </div>
+              <p className="text-sm text-slate-400 mt-2">{plan.desc}</p>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
+              <ul className="space-y-3 mb-8 flex-1">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                variant={plan.popular ? 'default' : 'outline'}
+                className="w-full"
+              >
+                {plan.cta}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-2xl font-bold mb-8 text-center">常见问题</h2>
+        <div className="space-y-4">
+          {faqs.map((faq, i) => (
+            <div key={i} className="border border-slate-800 rounded-lg bg-slate-900/30 overflow-hidden">
+              <button
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                className="w-full flex items-center justify-between p-4 text-left font-medium hover:bg-slate-800/50 transition-colors"
+              >
+                {faq.q}
+                {openFaq === i ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+              </button>
+              {openFaq === i && (
+                <div className="p-4 pt-0 text-slate-400 text-sm leading-relaxed border-t border-slate-800/50">
+                  {faq.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

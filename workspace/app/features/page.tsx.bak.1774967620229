@@ -1,0 +1,63 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Brain, Palette, Code2, ShieldCheck, Globe, Rocket } from 'lucide-react';
+
+const features = [
+  {
+    icon: <Brain className="w-8 h-8 text-indigo-400" />,
+    title: 'AI 需求分析',
+    desc: '基于大语言模型深度理解您的业务场景，自动生成结构化 PRD 与功能清单，确保开发方向零偏差。',
+  },
+  {
+    icon: <Palette className="w-8 h-8 text-purple-400" />,
+    title: '智能视觉设计',
+    desc: '内置现代设计系统，AI 自动匹配配色、排版与组件库，输出高保真 UI 方案，支持实时微调。',
+  },
+  {
+    icon: <Code2 className="w-8 h-8 text-pink-400" />,
+    title: '自动代码生成',
+    desc: '将设计稿无缝转化为生产级 Next.js + Tailwind 代码。组件化架构，语义化标签，开箱即用。',
+  },
+  {
+    icon: <ShieldCheck className="w-8 h-8 text-green-400" />,
+    title: '质量保障体系',
+    desc: '内置自动化测试、性能优化与 SEO 检查。确保生成的代码符合 Lighthouse 95+ 标准。',
+  },
+  {
+    icon: <Globe className="w-8 h-8 text-blue-400" />,
+    title: '多语言与国际化',
+    desc: '一键生成多语言版本网站，自动处理 RTL 布局与本地化资源，轻松触达全球用户。',
+  },
+  {
+    icon: <Rocket className="w-8 h-8 text-orange-400" />,
+    title: '无缝部署集成',
+    desc: '支持 Vercel、Netlify 等主流平台一键部署。内置 CI/CD 流水线配置，发布即上线。',
+  },
+];
+
+export default function FeaturesPage() {
+  return (
+    <div className="container mx-auto px-4 py-20">
+      <div className="text-center mb-16">
+        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+          全栈 AI 能力，<span className="text-gradient">覆盖建站全生命周期</span>
+        </h1>
+        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+          从需求洞察到代码交付，NexusSite-AI 提供端到端的智能化解决方案。
+        </p>
+      </div>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {features.map((f, i) => (
+          <Card key={i} className="hover:border-indigo-500/50 transition-all duration-300 hover:-translate-y-1">
+            <CardHeader>
+              <div className="mb-4 p-3 rounded-lg bg-slate-800/50 w-fit">{f.icon}</div>
+              <CardTitle>{f.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-400 leading-relaxed">{f.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}

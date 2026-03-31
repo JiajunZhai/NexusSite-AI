@@ -39,7 +39,9 @@ class OpenRouterClient:
         if self.api_key is None:
             self.api_key = os.getenv("OPENROUTER_API_KEY")
         if self.model is None:
-            self.model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
+            self.model = os.getenv(
+                "OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"
+            )
         base = os.getenv("OPENROUTER_BASE_URL")
         if base:
             self.base_url = base.rstrip("/")
@@ -67,7 +69,9 @@ class OpenRouterClient:
             )
 
         if not self.is_configured():
-            raise LLMError("OpenRouter is not configured (missing OPENROUTER_API_KEY or OPENROUTER_MODEL).")
+            raise LLMError(
+                "OpenRouter is not configured (missing OPENROUTER_API_KEY or OPENROUTER_MODEL)."
+            )
 
         url = f"{self.base_url}/chat/completions"
         headers = {
@@ -77,8 +81,14 @@ class OpenRouterClient:
 
         # OpenRouter policy: strongly recommended (and sometimes required) to send
         # both HTTP-Referer and X-Title for higher rate limits and compliance.
-        app_name = os.getenv("OPENROUTER_APP_NAME") or os.getenv("X_TITLE") or "NexusSite-AI"
-        http_referer = os.getenv("OPENROUTER_HTTP_REFERER") or os.getenv("HTTP_REFERER") or "http://localhost:3002"
+        app_name = (
+            os.getenv("OPENROUTER_APP_NAME") or os.getenv("X_TITLE") or "NexusSite-AI"
+        )
+        http_referer = (
+            os.getenv("OPENROUTER_HTTP_REFERER")
+            or os.getenv("HTTP_REFERER")
+            or "http://localhost:3002"
+        )
         headers["X-Title"] = app_name
         headers["HTTP-Referer"] = http_referer
 
@@ -93,7 +103,12 @@ class OpenRouterClient:
         if max_tokens is not None:
             payload["max_tokens"] = int(max_tokens)
 
-        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 raw = json.loads(resp.read().decode("utf-8"))
@@ -108,7 +123,7 @@ class OpenRouterClient:
             raise LLMError(f"OpenRouter request failed: {e}") from e
 
         try:
-            text = raw["choices"][0]["message"]["content"]
+            text = raw["choices"][0]["message"]["content"] or ""
         except Exception as e:  # pragma: no cover
             raise LLMError(f"Unexpected OpenRouter response: {raw}") from e
 
@@ -149,7 +164,12 @@ def _chat_opencode_zen(
             "system": system,
             "messages": [{"role": "user", "content": user}],
         }
-        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 raw = json.loads(resp.read().decode("utf-8"))
@@ -187,7 +207,9 @@ def _chat_opencode_zen(
     if max_tokens is not None:
         payload["max_tokens"] = int(max_tokens)
 
-    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST"
+    )
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             raw = json.loads(resp.read().decode("utf-8"))
@@ -202,8 +224,7 @@ def _chat_opencode_zen(
         raise LLMError(f"OpenCode Zen request failed: {e}") from e
 
     try:
-        text = raw["choices"][0]["message"]["content"]
+        text = raw["choices"][0]["message"]["content"] or ""
     except Exception as e:  # pragma: no cover
         raise LLMError(f"Unexpected OpenCode Zen response: {raw}") from e
     return LLMResponse(text=text, raw=raw)
-

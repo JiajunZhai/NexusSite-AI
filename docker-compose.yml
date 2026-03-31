@@ -30,7 +30,7 @@ services:
       - WATCHPACK_POLLING_INTERVAL=500
       - NEXT_TELEMETRY_DISABLED=1
     ports:
-      - "3001:3000"
+      - "3003:3000"
     command: >
       sh -lc "ln -sfn /workspace /app && npm install && npm run dev -- --hostname 0.0.0.0 --port 3000"
 
@@ -46,7 +46,8 @@ services:
       - WATCHPACK_POLLING=true
       - WATCHPACK_POLLING_INTERVAL=500
       - NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
-      - NEXT_PUBLIC_SANDBOX_PREVIEW_URL=http://localhost:3001
+      - NEXT_PUBLIC_SANDBOX_PREVIEW_URL=http://localhost:3003
+      - NEXT_PUBLIC_MARKETING_URL=http://localhost:3003
     ports:
       - "3002:3010"
     command: >

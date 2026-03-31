@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict
 
 from agents.llm_client import LLMError, OpenRouterClient
@@ -37,7 +37,7 @@ OUTPUT:
 
 @dataclass
 class DesignerAgent:
-    llm: OpenRouterClient = OpenRouterClient()
+    llm: OpenRouterClient = field(default_factory=OpenRouterClient)
 
     def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
         prd = state.get("prd") or {}
@@ -56,7 +56,9 @@ class DesignerAgent:
                     max_tokens=max_tokens,
                 )
                 design = json.loads(resp.text.strip())
-                theme_config = design.get("theme_config") if isinstance(design, dict) else None
+                theme_config = (
+                    design.get("theme_config") if isinstance(design, dict) else None
+                )
             except (LLMError, json.JSONDecodeError):
                 theme_config = None
         else:
@@ -77,4 +79,3 @@ class DesignerAgent:
 
         state["design_spec"] = {"theme_config": theme_config}
         return state
-
